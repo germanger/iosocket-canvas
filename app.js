@@ -63,6 +63,7 @@ app.use('/', require('./routes/viewsRoutes'));
 app.use('/api/users', require('./routes/api_users'));
 app.use('/api/messages', require('./routes/api_messages'));
 app.use('/api/strokes', require('./routes/api_strokes'));
+app.use('/api/server', require('./routes/api_server'));
 
 // development error handler will print stacktrace
 if (app.get('env') === 'development') {

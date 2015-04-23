@@ -164,6 +164,7 @@
             $scope.users = [];
             $scope.messages = [];
             $scope.strokes = [];
+            $scope.serverInfo = {};
             
             $scope.submitMessage = function () {
                 $scope.sendingMessage = true;
@@ -220,9 +221,9 @@
             };
             
             $scope.login = function () {
-                $scope.socket = io.connect('http://localhost:3000', { query: 'username=' + $scope.username });
+                $scope.socket = io.connect('http://localhost:' + $scope.serverInfo.port, { query: 'username=' + $scope.username });
                 
-                $scope.socket.on('connect', function () {
+                $scope.socket.on('connect', function() {
                 });
                 
                 $scope.socket.on('connect_error', function() {
@@ -439,6 +440,33 @@
                     $scope.clearingStrokes = false;
                 });
             };
+            
+            $scope.fetchServerInfo = function () {
+                $scope.fetchingServerInfo = true;
+                
+                var httpRequest = $http({
+                    method: "get",
+                    url: "/api/server/info",
+                    params: {},
+                    data: {}
+                });
+                
+                httpRequest.success(function(response) {
+                
+                    if (response.error) {
+                        toaster.pop('error', "", response.message);
+                        return;
+                    }
+                    
+                    $scope.serverInfo = response.serverInfo;
+                });
+                
+                httpRequest['finally'](function() {
+                    $scope.fetchingServerInfo = false;
+                });
+            };
+            
+            $scope.fetchServerInfo();
         }]);
     </script>
 </head>
@@ -489,7 +517,7 @@
                         <input type="text" class="form-control" ng-model="username" placeholder="Your name"  />
                     </div>
                     <div class="form-group">
-                        <button class="btn btn-default" ng-click="login()">Login</button>
+                        <button class="btn btn-default" ng-click="login()" ng-disabled="username == '' || fetchingServerInfo">Login</button>
                     </div>
                 </form>
                 <form style="margin-top: 15px" ng-show="logged">

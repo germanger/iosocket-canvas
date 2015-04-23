@@ -3,16 +3,6 @@ var shared = require('../shared')
 
 var router = express.Router();
 
-router.get('/info', function(req, res) {
-
-    res.json({
-        'error': false,
-        'info': {
-            'port': process.env.PORT || 3000
-        }
-    });
-});
-
 router.get('/login', function(req, res) {
 
     res.json({
