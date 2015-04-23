@@ -22,16 +22,7 @@ router.get('/logout', function(req, res) {
         return;
     }
     
-    for (var i = 0; i < shared.users.length; i++) {
-        if (shared.users[i].socketId == req.query.socketId) {
-            shared.users.splice(i, 1);
-        }
-    }
-    
-    // Broadcast
-    shared.io.sockets.emit('serverUpdatedUsersList', {
-        users: shared.users
-    });
+    shared.io.sockets.connected[req.query.socketId].disconnect();
 
     res.json({
         'error': false,

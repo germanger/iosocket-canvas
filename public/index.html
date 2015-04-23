@@ -155,7 +155,7 @@
             };
         });
         
-        angular.module('canvasApp').controller('mainController', ['$scope', '$http', 'toaster', function ($scope, $http, toaster) {
+        angular.module('canvasApp').controller('mainController', ['$scope', '$http', '$window', 'toaster', function ($scope, $http, $window, toaster) {
 
             $scope.socket = null;
             $scope.username = "";
@@ -263,9 +263,17 @@
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverUpdatedUsersList", function(data) {
-                        $scope.users = data.users;
+                    $scope.socket.on("userConnected", function(data) {
+                        toaster.pop('info', "", data.user.username + " has connected");
                         
+                        $scope.users = data.users;
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("userDisconnected", function(data) {
+                        toaster.pop('info', "", data.user.username + " is gone");
+                        
+                        $scope.users = data.users;
                         $scope.$apply()
                     });
                 });
@@ -294,14 +302,7 @@
                         return;
                     }
                     
-                    $scope.username = "";
-                    $scope.logged = false;
-                    $scope.users.length = 0;
-                    $scope.messages.length = 0;
-                    $scope.strokes.length = 0;
-                    $scope.socket.disconnect();
-                    
-                    toaster.pop('success', "", "Bye");
+                    $window.location.reload();
                 });
                 
                 httpRequest['finally'](function() {
@@ -475,7 +476,7 @@
 <body>
     <div class="container" ng-controller="mainController">
         <h1>socket.io collaborative drawing</h1>
-        <p>This project's code is hosted in <a href="">GitHub</a></p>
+        <p>This project's code is hosted in <a href="https://github.com/germanger/iosocket-canvas" target="_blank">GitHub</a></p>
         
         <div class="row">
             <div class="col-md-2">

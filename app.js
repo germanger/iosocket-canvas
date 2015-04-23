@@ -17,13 +17,34 @@ shared.io = require('socket.io').listen(server);
 shared.io.sockets.on('connection', function (socket) {
     console.log("new connection: " + socket.handshake.query.username);
     
-    shared.users.push({
+    var user = {
         socketId: socket.id,
         username: socket.handshake.query.username
-    });
+    };
+    
+    shared.users.push(user);
 
-    shared.io.sockets.emit('serverUpdatedUsersList', {
+    // Broadcast
+    shared.io.sockets.emit('userConnected', {
+        user: user,
         users: shared.users
+    });
+    
+    socket.on('disconnect', function() {
+        for (var i = 0; i < shared.users.length; i++) {
+            if (shared.users[i].socketId == socket.id) {               
+                
+                var user = shared.users[i];
+                
+                shared.users.splice(i, 1);
+                
+                // Broadcast
+                shared.io.sockets.emit('userDisconnected', {
+                    user: user,
+                    users: shared.users
+                });
+            }
+        }
     });
 });
 
