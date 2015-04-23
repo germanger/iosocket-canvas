@@ -1,6 +1,9 @@
 # iosocket-canvas
 A collaborative drawing canvas (with chat)
 
+## Demo
+The master branch is directly deployed to heroku: https://iosocket-canvas.herokuapp.com/
+
 ## Server side
 
 - Node.JS
