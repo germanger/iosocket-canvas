@@ -221,55 +221,56 @@
             };
             
             $scope.login = function () {
-                $scope.socket = io.connect('://localhost:' + $scope.serverInfo.port, { query: 'username=' + $scope.username });
+                $scope.socket = io.connect({ query: 'username=' + $scope.username });
                 
                 $scope.socket.on('connect', function() {
+                    console.log("Connected");
+                    
+                    $scope.logged = true;
+                    $scope.fetchUsers();
+                    $scope.fetchMessages();
+                    $scope.fetchStrokes();
+                    
+                    $scope.socket.on("serverBroadcastsUserMessage", function(data) {
+                        $scope.messages.push({
+                            'username': data.username,
+                            'body': data.body
+                        });
+                        
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("serverBroadcastsUserStroke", function(data) {
+                        $scope.strokes.push({
+                            'username': data.username,
+                            'stroke': data.stroke
+                        });
+                        
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("serverBroadcastsClearMessages", function(data) {                   
+                        toaster.pop('info', "", "Messages cleared by " + data.username);
+                        
+                        $scope.messages.length = 0;
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("serverBroadcastsClearStrokes", function(data) {
+                        toaster.pop('info', "", "Strokes cleared by " + data.username);
+                        
+                        $scope.strokes.length = 0;
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("serverUpdatedUsersList", function(data) {
+                        $scope.users = data.users;
+                        
+                        $scope.$apply()
+                    });
                 });
                 
                 $scope.socket.on('connect_error', function() {
-                });
-                
-                $scope.logged = true;
-                $scope.fetchUsers();
-                $scope.fetchMessages();
-                $scope.fetchStrokes();
-                
-                $scope.socket.on("serverBroadcastsUserMessage", function(data) {
-                    $scope.messages.push({
-                        'username': data.username,
-                        'body': data.body
-                    });
-                    
-                    $scope.$apply()
-                });
-                
-                $scope.socket.on("serverBroadcastsUserStroke", function(data) {
-                    $scope.strokes.push({
-                        'username': data.username,
-                        'stroke': data.stroke
-                    });
-                    
-                    $scope.$apply()
-                });
-                
-                $scope.socket.on("serverBroadcastsClearMessages", function(data) {                   
-                    toaster.pop('info', "", "Messages cleared by " + data.username);
-                    
-                    $scope.messages.length = 0;
-                    $scope.$apply()
-                });
-                
-                $scope.socket.on("serverBroadcastsClearStrokes", function(data) {
-                    toaster.pop('info', "", "Strokes cleared by " + data.username);
-                    
-                    $scope.strokes.length = 0;
-                    $scope.$apply()
-                });
-                
-                $scope.socket.on("serverUpdatedUsersList", function(data) {
-                    $scope.users = data.users;
-                    
-                    $scope.$apply()
                 });
             };
             
