@@ -221,7 +221,7 @@
             };
             
             $scope.login = function () {
-                $scope.socket = io.connect('http://localhost:' + $scope.serverInfo.port, { query: 'username=' + $scope.username });
+                $scope.socket = io.connect('://localhost:' + $scope.serverInfo.port, { query: 'username=' + $scope.username });
                 
                 $scope.socket.on('connect', function() {
                 });
