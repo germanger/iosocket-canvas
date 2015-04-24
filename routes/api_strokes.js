@@ -13,18 +13,20 @@ router.post('/submit', function(req, res) {
         
         return;
     }
-
-    // Save the new stroke
-    shared.strokes.push({
+    
+    // Create stroke
+    var stroke = {
         'username': res.user.username,
-        'stroke': req.body
-    });
+        'cursorData': req.body.cursorData,
+        'lineWidth': req.body.lineWidth,
+        'lineColor': req.body.lineColor
+    };
+    
+    // Save the new stroke
+    shared.strokes.push(stroke);
 
     // Broadcast the new stroke
-    shared.io.sockets.emit('serverBroadcastsUserStroke', {
-        username: res.user.username,
-        stroke: req.body
-    });
+    shared.io.sockets.emit('serverBroadcastsUserStroke', stroke);
 
     res.json({
         'error': false,

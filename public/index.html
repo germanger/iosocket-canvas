@@ -36,7 +36,9 @@
                 scope: { 
                     finishedStrokeHandler: '&finishedStrokeHandler',
                     drawingDisabled: '&drawingDisabled',
-                    strokes: '=strokes'
+                    strokes: '=strokes',
+                    lineWidth: '=lineWidth',
+                    lineColor: '=lineColor'
                 },
                 link: function($scope, $element, $attrs) {
                 
@@ -47,12 +49,12 @@
                         }
                         // Draw last stroke
                         else if (newValue.length == oldValue.length + 1) {
-                            drawStroke(newValue[newValue.length - 1].stroke);
+                            drawStroke($scope.strokes[$scope.strokes.length - 1]);
                         }
                         // Draw all strokes
                         else if (oldValue.length == 0) {
                             for (i = 0; i < $scope.strokes.length; i++) {
-                                drawStroke($scope.strokes[i].stroke);
+                                drawStroke($scope.strokes[i]);
                             }
                         }
                     }, true);
@@ -60,27 +62,27 @@
                     var cursorData = [];
                     var mouseDown = false;
                     
-                    function drawStroke (cursorData) {
+                    function drawStroke (stroke) {
                         var context = $element[0].getContext('2d');
 
-                        context.strokeStyle = "#df4b26";
                         context.lineJoin = "round";
-                        context.lineWidth = 5;
+                        context.strokeStyle = stroke.lineColor;
+                        context.lineWidth = stroke.lineWidth;
 
-                        for (var i = 0; i < cursorData.length; i++) {
+                        for (var i = 0; i < stroke.cursorData.length; i++) {
                         
                             // This is the penultimate item
-                            if (i == cursorData.length - 1) {
+                            if (i == stroke.cursorData.length - 1) {
                                 return;
                             }
                             
                             context.beginPath();
                             
                             // Move to cursorData[i]
-                            context.moveTo(cursorData[i].cursorX, cursorData[i].cursorY);
+                            context.moveTo(stroke.cursorData[i].cursorX, stroke.cursorData[i].cursorY);
 
                             // Create line from there to cursorData[i + 1]
-                            context.lineTo(cursorData[i + 1].cursorX, cursorData[i + 1].cursorY);
+                            context.lineTo(stroke.cursorData[i + 1].cursorX, stroke.cursorData[i + 1].cursorY);
                             
                             context.closePath();
                             context.stroke();
@@ -111,7 +113,11 @@
                                 cursorY: event.offsetY
                             });
                         
-							drawStroke(cursorData);
+							drawStroke({
+                                cursorData: cursorData,
+                                lineColor: $scope.lineColor,
+                                lineWidth: $scope.lineWidth
+                            });
 						}
                     });
                     
@@ -165,6 +171,8 @@
             $scope.messages = [];
             $scope.strokes = [];
             $scope.serverInfo = {};
+            $scope.lineWidth = 5;
+            $scope.lineColor = "#ca4422";
             
             $scope.submitMessage = function () {
                 $scope.sendingMessage = true;
@@ -204,7 +212,11 @@
                     params: {
                         socketId: $scope.socket.id
                     },
-                    data: cursorData
+                    data: {
+                        lineWidth: $scope.lineWidth,
+                        lineColor: $scope.lineColor,
+                        cursorData: cursorData
+                    }
                 });
                 
                 httpRequest.success(function(response) {
@@ -231,21 +243,13 @@
                     $scope.fetchMessages();
                     $scope.fetchStrokes();
                     
-                    $scope.socket.on("serverBroadcastsUserMessage", function(data) {
-                        $scope.messages.push({
-                            'username': data.username,
-                            'body': data.body
-                        });
-                        
+                    $scope.socket.on("serverBroadcastsUserMessage", function(message) {
+                        $scope.messages.push(message);
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverBroadcastsUserStroke", function(data) {
-                        $scope.strokes.push({
-                            'username': data.username,
-                            'stroke': data.stroke
-                        });
-                        
+                    $scope.socket.on("serverBroadcastsUserStroke", function(stroke) {
+                        $scope.strokes.push(stroke);
                         $scope.$apply()
                     });
                     
@@ -492,11 +496,11 @@
                 </div>
                 
                 <h2>Strokes ({{strokes.length}})</h2>
-                <div class="bordered" style="height: 300px; overflow-y: scroll" scroll-glue="true">
+                <div class="bordered" style="height: 300px; overflow-y: scroll" scroll-glue>
                     <table class="table table-bordered table-condensed">
                         <tr ng-repeat="stroke in strokes">
                             <td>
-                                <span>{{stroke.username}}</strong>
+                                <strong style="color: {{stroke.lineColor}}">{{stroke.username}} ({{stroke.lineWidth}} px)</strong>
                             </td>
                         </tr>
                     </table>
@@ -504,7 +508,7 @@
             </div>
             <div class="col-md-4">
                 <h2>Messages ({{messages.length}})</h2>
-                <div class="bordered" style="height: 300px; overflow-y: scroll" scroll-glue="true">
+                <div class="bordered" style="height: 300px; overflow-y: scroll" scroll-glue>
                     <table class="table table-bordered table-condensed">
                         <tr ng-repeat="message in messages">
                             <td>
@@ -534,12 +538,37 @@
             </div>
             <div class="col-md-6">
                 <h2>Canvas</h2>
-                <canvas class="bordered" width="480" height="300" style="cursor: pointer" drawing-canvas strokes="strokes" drawing-disabled="!logged" finished-stroke-handler="submitStroke"></canvas>
+                <canvas class="bordered" width="500" height="300" style="cursor: pointer" drawing-canvas line-color="lineColor" line-width="lineWidth" strokes="strokes" drawing-disabled="!logged" finished-stroke-handler="submitStroke"></canvas>
                 
                 <form style="margin-top: 15px" ng-show="logged">
                     <div class="form-group">
                         <button class="btn btn-default" ng-click="clearMessages()" ng-disabled="clearingMessages">Clear messages</button>
                         <button class="btn btn-default" ng-click="clearStrokes()" ng-disabled="clearingStrokes">Clear strokes</button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Line width</label>
+                                <select class="form-control" ng-model="lineWidth">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="10">10</option>
+                                    <option value="15">15</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Line color</label>
+                                <input type="color" class="form-control" ng-model="lineColor" />
+                            </div>
+                        </div>
                     </div>
                 </form>
 			</div>

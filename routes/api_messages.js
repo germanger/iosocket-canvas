@@ -21,18 +21,18 @@ router.get('/submit', function(req, res) {
         
         return;
     }
-
-    // Save the new message
-    shared.messages.push({
+    
+    // Create message
+    var message = {
         'username': res.user.username,
         'body': req.query.body
-    });
+    };
+
+    // Save the new message
+    shared.messages.push(message);
     
     // Broadcast the new message
-    shared.io.sockets.emit('serverBroadcastsUserMessage', {
-        username: res.user.username,
-        body: req.query.body
-    });
+    shared.io.sockets.emit('serverBroadcastsUserMessage', message);
 
     res.json({
         'error': false
