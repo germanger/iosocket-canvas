@@ -4,8 +4,9 @@ var express = require('express'), app = module.exports.app = express();
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var shortid = require('shortid');
 var server = http.createServer(app);
-var shared = require('./shared')
+var shared = require('./shared');
 
 // A default engine is required, even though we render plain html
 app.set('views', './public');
@@ -15,14 +16,18 @@ app.set('view engine', 'ejs');
 shared.io = require('socket.io').listen(server);
 
 shared.io.sockets.on('connection', function (socket) {
-    console.log("new connection: " + socket.handshake.query.username);
+    var userId = shortid.generate();
     
     var user = {
+        userId: userId,
         socketId: socket.id,
-        username: socket.handshake.query.username
+        username: userId,
     };
     
     shared.users.push(user);
+    
+    // Respond to him
+    socket.emit('welcome', user);
 
     // Broadcast
     shared.io.sockets.emit('userConnected', {
@@ -92,8 +97,8 @@ if (app.get('env') === 'development') {
         res.status(err.status || 500);
         
         res.json({
-            'error': true,
-            'message': err.message
+            error: true,
+            message: err.message
         });
     });
 }
@@ -103,8 +108,8 @@ app.use(function(err, req, res, next) {
     res.status(err.status || 500);
     
     res.json({
-        'error': true,
-        'message': err.message
+        error: true,
+        message: err.message
     });
 });
 

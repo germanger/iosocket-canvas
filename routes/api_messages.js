@@ -1,13 +1,13 @@
 var express = require('express');
-var shared = require('../shared')
+var shared = require('../shared');
 
 var router = express.Router();
 
 router.get('/list', function(req, res) {
 
     res.json({
-        'error': false,
-        'messages': shared.messages
+        error: false,
+        messages: shared.messages
     });
 });
 
@@ -15,8 +15,8 @@ router.get('/submit', function(req, res) {
 
     if (!res.user) {
         res.json({
-            'error': true,
-            'message': 'socketId not found in list of users'
+            error: true,
+            message: 'socketId not found in list of users'
         });
         
         return;
@@ -24,8 +24,8 @@ router.get('/submit', function(req, res) {
     
     // Create message
     var message = {
-        'username': res.user.username,
-        'body': req.query.body
+        username: res.user.username,
+        body: req.query.body
     };
 
     // Save the new message
@@ -43,8 +43,8 @@ router.get('/clear', function(req, res) {
 
     if (!res.user) {
         res.json({
-            'error': true,
-            'message': 'socketId not found in list of users'
+            error: true,
+            message: 'socketId not found in list of users'
         });
         
         return;
@@ -55,11 +55,11 @@ router.get('/clear', function(req, res) {
 
     // Broadcast
     shared.io.sockets.emit('serverBroadcastsClearMessages', {
-        'username': res.user.username
+        username: res.user.username
     });
 
     res.json({
-        'error': false
+        error: false
     });
 });
 

@@ -44,15 +44,17 @@
                 
                     $scope.$watch('strokes', function(newValue, oldValue) {                        
                         // Clear canvas
-                        if ($scope.strokes.length == 0) {
+                        if (newValue.length == 0) {
                             $element[0].width = $element[0].width;
                         }
                         // Draw last stroke
                         else if (newValue.length == oldValue.length + 1) {
                             drawStroke($scope.strokes[$scope.strokes.length - 1]);
                         }
-                        // Draw all strokes
-                        else if (oldValue.length == 0) {
+                        // Draw all strokes again
+                        else if (oldValue.length != newValue.length) {
+                            $element[0].width = $element[0].width;
+                            
                             for (i = 0; i < $scope.strokes.length; i++) {
                                 drawStroke($scope.strokes[i]);
                             }
@@ -164,7 +166,7 @@
         angular.module('canvasApp').controller('mainController', ['$scope', '$http', '$window', 'toaster', function ($scope, $http, $window, toaster) {
 
             $scope.socket = null;
-            $scope.username = "";
+            $scope.currentUser = {};
             $scope.logged = false;
             $scope.newMessageBody = "";
             $scope.users = [];
@@ -173,6 +175,41 @@
             $scope.serverInfo = {};
             $scope.lineWidth = 5;
             $scope.lineColor = "#ca4422";
+            
+            $scope.updateIsTyping = function (isTyping) {
+                $scope.updatingIsTyping = true;
+                
+                var httpRequest = $http({
+                    method: "get",
+                    url: "/api/users/updateIsTyping",
+                    params: {
+                        socketId: $scope.socket.id,
+                        isTyping: isTyping
+                    },
+                    data: {}
+                });
+                
+                httpRequest.success(function(response) {
+                
+                    if (response.error) {
+                        toaster.pop('error', "", response.message);
+                        return;
+                    }
+                });
+                
+                httpRequest['finally'](function() {
+                    $scope.updatingIsTyping = false;
+                });
+            };
+
+            
+            $scope.$watch('newMessageBody', function(newValue, oldValue) {                        
+                if (oldValue.length == 0 && newValue.length > 0) {
+                    $scope.updateIsTyping(true);
+                } else if (oldValue.length > 0 && newValue.length == 0) {
+                    $scope.updateIsTyping(false);
+                }
+            }, true);
             
             $scope.submitMessage = function () {
                 $scope.sendingMessage = true;
@@ -232,16 +269,29 @@
                 });
             };
             
-            $scope.login = function () {
-                $scope.socket = io.connect({ query: 'username=' + $scope.username });
+            $scope.connect = function () {
+                $scope.socket = io.connect();
                 
                 $scope.socket.on('connect', function() {
-                    console.log("Connected");
-                    
                     $scope.logged = true;
                     $scope.fetchUsers();
                     $scope.fetchMessages();
                     $scope.fetchStrokes();
+                    
+                    $scope.socket.on("welcome", function(user) {
+                        $scope.currentUser = user;
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("userChangedName", function(data) {
+                        $scope.users = data.users;
+                        $scope.$apply()
+                    });
+                    
+                    $scope.socket.on("userUpdatedIsTyping", function(data) {
+                        $scope.users = data.users;
+                        $scope.$apply()
+                    });
                     
                     $scope.socket.on("serverBroadcastsUserMessage", function(message) {
                         $scope.messages.push(message);
@@ -267,6 +317,13 @@
                         $scope.$apply()
                     });
                     
+                    $scope.socket.on("serverBroadcastsDeleteStroke", function(data) {
+                        toaster.pop('info', "", "A stroke deleted by " + data.username);
+                        
+                        $scope.strokes = data.strokes;
+                        $scope.$apply()
+                    });
+                    
                     $scope.socket.on("userConnected", function(data) {
                         toaster.pop('info', "", data.user.username + " has connected");
                         
@@ -285,35 +342,7 @@
                 $scope.socket.on('connect_error', function() {
                 });
             };
-            
-            $scope.logout = function () {               
-                $scope.loggingOut = true;
-                
-                var httpRequest = $http({
-                    method: "get",
-                    url: "/api/users/logout",
-                    params: {
-                        socketId: $scope.socket.id
-                    },
-                    data: {
-                    }
-                });
-                
-                httpRequest.success(function(response) {
-                
-                    if (response.error) {
-                        toaster.pop('error', "", response.message);
-                        return;
-                    }
-                    
-                    $window.location.reload();
-                });
-                
-                httpRequest['finally'](function() {
-                    $scope.loggingOut = false;
-                });
-            };
-            
+
             $scope.fetchUsers = function () {
                 $scope.fetchingUsers = true;
                 
@@ -447,6 +476,63 @@
                 });
             };
             
+            $scope.removeStroke = function (strokeId) {
+                $scope.deletingStroke = true;
+                
+                var httpRequest = $http({
+                    method: "get",
+                    url: "/api/strokes/delete",
+                    params: {
+                        socketId: $scope.socket.id,
+                        strokeId: strokeId
+                    },
+                    data: {
+                    }
+                });
+                
+                httpRequest.success(function(response) {
+                
+                    if (response.error) {
+                        toaster.pop('error', "", response.message);
+                        return;
+                    }
+                });
+                
+                httpRequest['finally'](function() {
+                    $scope.deletingStroke = false;
+                });
+            };
+            
+            $scope.changeName = function () {
+                $scope.changingName = true;
+                
+                var httpRequest = $http({
+                    method: "get",
+                    url: "/api/users/rename",
+                    params: {
+                        socketId: $scope.socket.id,
+                        username: $scope.currentUser.newUsername
+                    },
+                    data: {
+                    }
+                });
+                
+                httpRequest.success(function(response) {
+                
+                    if (response.error) {
+                        toaster.pop('error', "", response.message);
+                        return;
+                    }
+                    
+                    $scope.currentUser.username = $scope.currentUser.newUsername;
+                    $scope.currentUser.newUsername = "";
+                });
+                
+                httpRequest['finally'](function() {
+                    $scope.changingName = false;
+                });
+            };
+            
             $scope.fetchServerInfo = function () {
                 $scope.fetchingServerInfo = true;
                 
@@ -472,16 +558,30 @@
                 });
             };
             
-            $scope.fetchServerInfo();
+            $scope.connect();
         }]);
     </script>
 </head>
 
 <body>
     <div class="container" ng-controller="mainController">
-        <h1>socket.io collaborative drawing</h1>
-        <p>This project's code is hosted in <a href="https://github.com/germanger/iosocket-canvas" target="_blank">GitHub</a></p>
-        
+        <div class="row">
+            <div class="col-md-6">
+                <h1>socket.io collaborative drawing</h1>
+                <p>The code is available at <a href="https://github.com/germanger/iosocket-canvas" target="_blank">GitHub</a></p>
+            </div>
+            <div class="col-md-6">
+                <h2>Change your name ({{currentUser.username}})</h2>
+                <form class="form-inline" style="margin-top: 15px" ng-show="logged">
+                    <div class="form-group">
+                        <input type="text" class="form-control input-sm" ng-model="currentUser.newUsername" placeholder="New name" />
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-default btn-sm" ng-click="changeName()" ng-disabled="changingName">Set</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         <div class="row">
             <div class="col-md-2">
                 <h2>Users ({{users.length}})</h2>
@@ -489,18 +589,20 @@
                     <table class="table table-bordered table-condensed">
                         <tr ng-repeat="user in users">
                             <td>
-                                <span>{{user.username}}</strong>
+                                <span>{{user.username}}</span>
+                                <em class="pull-right" ng-show="user.isTyping">typing...</em>
                             </td>
                         </tr>
                     </table>
                 </div>
                 
                 <h2>Strokes ({{strokes.length}})</h2>
-                <div class="bordered" style="height: 300px; overflow-y: scroll" scroll-glue>
+                <div class="bordered" style="height: 200px; overflow-y: scroll" scroll-glue>
                     <table class="table table-bordered table-condensed">
                         <tr ng-repeat="stroke in strokes">
                             <td>
                                 <strong style="color: {{stroke.lineColor}}">{{stroke.username}} ({{stroke.lineWidth}} px)</strong>
+                                <a href class="pull-right" ng-click="removeStroke(stroke.strokeId)"><span class="glyphicon glyphicon-remove" /></a>
                             </td>
                         </tr>
                     </table>
@@ -518,27 +620,18 @@
                         </tr>
                     </table>
                 </div>
-                <form class="form-inline" style="margin-top: 15px" ng-show="!logged">
-                    <div class="form-group">
-                        <input type="text" class="form-control" ng-model="username" placeholder="Your name"  />
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-default" ng-click="login()" ng-disabled="username == '' || fetchingServerInfo">Login</button>
-                    </div>
-                </form>
                 <form style="margin-top: 15px" ng-show="logged">
                     <div class="form-group">
-                        <textarea style="resize: vertical;" rows="3" class="form-control bordered" ng-model="newMessageBody" ng-enter="submitMessage()"></textarea>
+                        <textarea style="resize: vertical;" rows="3" class="form-control bordered" ng-model="newMessageBody" ng-enter="submitMessage()" placeholder="Write something..."></textarea>
                     </div>
                     <div class="form-group">
                         <button class="btn btn-default" ng-click="submitMessage()" ng-disabled="newMessageBody == '' || sendingMessage">Send</button>
-                        <button class="btn btn-default" ng-click="logout()">Logout</button>
                     </div>
                 </form>
             </div>
             <div class="col-md-6">
                 <h2>Canvas</h2>
-                <canvas class="bordered" width="500" height="300" style="cursor: pointer" drawing-canvas line-color="lineColor" line-width="lineWidth" strokes="strokes" drawing-disabled="!logged" finished-stroke-handler="submitStroke"></canvas>
+                <canvas class="bordered" width="500" height="400" style="cursor: pointer" drawing-canvas line-color="lineColor" line-width="lineWidth" strokes="strokes" drawing-disabled="!logged" finished-stroke-handler="submitStroke"></canvas>
                 
                 <form style="margin-top: 15px" ng-show="logged">
                     <div class="form-group">

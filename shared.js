@@ -3,7 +3,7 @@ module.exports = {
     users: [],
     strokes: [],
     messages: [{
-        'username': 'manger.cl',
-        'body': 'First message ever!'
+        username: 'manger.cl',
+        body: 'First message ever!'
     }]
 };
