@@ -3,14 +3,6 @@ var shared = require('../shared');
 
 var router = express.Router();
 
-router.get('/login', function(req, res) {
-
-    res.json({
-        error: false,
-        message: ''
-    });
-});
-
 router.get('/list', function(req, res) {
 
     var users = [];
