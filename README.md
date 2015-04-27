@@ -15,7 +15,8 @@ The master branch is directly deployed to heroku: https://iosocket-canvas.heroku
 - `'/'` : Endpoint for connecting to the socket.io server
 - `'/'` : Also returns `index.html` (angular app)
 - `'/api/users/list'` : List of connected users
-- `'/api/users/logout'` : Expects a socketId parameter. Kills that socket.
+- `'/api/users/rename'` : Expects a `socketId` and a `username`.
+- `'/api/users/updateIsTyping'` : Expects a `socketId` and a `isTyping`.
 - `'/api/messages/list'` : List of messages
 - `'/api/messages/submit'` : Expects a `socketId` parameter and a `body` parameter
 - `'/api/messages/clear'` : Expects a `socketId`. Clears all messages.
