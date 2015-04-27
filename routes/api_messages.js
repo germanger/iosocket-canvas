@@ -24,15 +24,22 @@ router.get('/submit', function(req, res) {
     
     // Create message
     var message = {
-        username: res.user.username,
-        body: req.query.body
+        messageType: 'userBroadcastsMessage',
+        timestamp: new Date(),
+        user: {
+            userId: res.user.userId,
+            username: res.user.username,
+        },
+        chatMessage: {
+            body: req.query.body
+        }
     };
 
     // Save the new message
     shared.messages.push(message);
     
     // Broadcast the new message
-    shared.io.sockets.emit('serverBroadcastsUserMessage', message);
+    shared.io.sockets.emit('userBroadcastsMessage', message);
 
     res.json({
         'error': false
@@ -52,10 +59,22 @@ router.get('/clear', function(req, res) {
 
     // Clear messages
     shared.messages.length = 0;
+    
+    // Log
+    var message = {
+        messageType: 'userClearedMessages',
+        timestamp: new Date(),
+        user: {
+            userId: res.user.userId,
+            username: res.user.username
+        }
+    };
+    
+    shared.messages.push(message);
 
     // Broadcast
-    shared.io.sockets.emit('serverBroadcastsClearMessages', {
-        username: res.user.username
+    shared.io.sockets.emit('userClearedMessages', {
+        message: message
     });
 
     res.json({

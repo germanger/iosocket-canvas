@@ -28,7 +28,7 @@ router.post('/submit', function(req, res) {
     shared.strokes.push(stroke);
 
     // Broadcast the new stroke
-    shared.io.sockets.emit('serverBroadcastsUserStroke', stroke);
+    shared.io.sockets.emit('userBroadcastsStroke', stroke);
 
     res.json({
         error: false,
@@ -54,13 +54,22 @@ router.get('/clear', function(req, res) {
         
         return;
     }
+    
+    var message = {
+        messageType: 'userClearedStrokes',
+        timestamp: new Date(),
+        user: {
+            userId: res.user.userId,
+            username: res.user.username,
+        }
+    };
 
     // Clear strokes
     shared.strokes.length = 0;
 
     // Broadcast
-    shared.io.sockets.emit('serverBroadcastsClearStrokes', {
-        username: res.user.username
+    shared.io.sockets.emit('userClearedStrokes', {
+        message: message
     });
 
     res.json({
@@ -85,10 +94,19 @@ router.get('/delete', function(req, res) {
             shared.strokes.splice(i, 1);
         }
     }
+    
+    var message = {
+        messageType: 'userDeletedStroke',
+        timestamp: new Date(),
+        user: {
+            userId: res.user.userId,
+            username: res.user.username,
+        }
+    };
 
     // Broadcast
-    shared.io.sockets.emit('serverBroadcastsDeleteStroke', {
-        username: res.user.username,
+    shared.io.sockets.emit('userDeletedStroke', {
+        message: message,
         strokes: shared.strokes
     });
 

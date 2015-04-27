@@ -11,25 +11,6 @@ router.get('/login', function(req, res) {
     });
 });
 
-router.get('/logout', function(req, res) {
-
-    if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
-    }
-    
-    shared.io.sockets.connected[req.query.socketId].disconnect();
-
-    res.json({
-        error: false,
-        message: ''
-    });
-});
-
 router.get('/list', function(req, res) {
 
     var users = [];
@@ -66,24 +47,28 @@ router.get('/rename', function(req, res) {
         return;
     }
     
-    res.user.username = req.query.username
+    var oldUsername = res.user.username;
+    res.user.username = req.query.username;
     
-    // Log
-    /*var log = {
+    var message = {
+        messageType: 'userChangedName',
         timestamp: new Date(),
         user: {
             userId: res.user.userId,
             username: res.user.username
         },
-        message: 'Changed his name'
+        data: {
+            oldUsername: oldUsername,
+            newUsername: res.user.username
+        }
     };
     
-    shared.logs.push(log);*/
+    shared.messages.push(message);
     
     // Broadcast
     shared.io.sockets.emit('userChangedName', {
         users: shared.users,
-        //log: log
+        message: message
     });
 
     res.json({

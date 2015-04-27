@@ -26,13 +26,26 @@ shared.io.sockets.on('connection', function (socket) {
     
     shared.users.push(user);
     
+    // Log
+    var message = {
+        messageType: 'userConnected',
+        timestamp: new Date(),
+        user: {
+            userId: user.userId,
+            username: user.username
+        }
+    };
+    
+    shared.messages.push(message);
+    
     // Respond to him
     socket.emit('welcome', user);
 
     // Broadcast
     shared.io.sockets.emit('userConnected', {
         user: user,
-        users: shared.users
+        users: shared.users,
+        message: message
     });
     
     socket.on('disconnect', function() {
@@ -43,10 +56,23 @@ shared.io.sockets.on('connection', function (socket) {
                 
                 shared.users.splice(i, 1);
                 
+                // Log
+                var message = {
+                    messageType: 'userDisconnected',
+                    timestamp: new Date(),
+                    user: {
+                        userId: user.userId,
+                        username: user.username
+                    }
+                };
+                
+                shared.messages.push(message);
+                
                 // Broadcast
                 shared.io.sockets.emit('userDisconnected', {
                     user: user,
-                    users: shared.users
+                    users: shared.users,
+                    message: message
                 });
             }
         }

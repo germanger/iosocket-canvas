@@ -201,7 +201,6 @@
                     $scope.updatingIsTyping = false;
                 });
             };
-
             
             $scope.$watch('newMessageBody', function(newValue, oldValue) {                        
                 if (oldValue.length == 0 && newValue.length > 0) {
@@ -284,6 +283,8 @@
                     });
                     
                     $scope.socket.on("userChangedName", function(data) {
+                        $scope.messages.push(data.message);
+                    
                         $scope.users = data.users;
                         $scope.$apply()
                     });
@@ -293,46 +294,46 @@
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverBroadcastsUserMessage", function(message) {
+                    $scope.socket.on("userBroadcastsMessage", function(message) {
                         $scope.messages.push(message);
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverBroadcastsUserStroke", function(stroke) {
+                    $scope.socket.on("userBroadcastsStroke", function(stroke) {
                         $scope.strokes.push(stroke);
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverBroadcastsClearMessages", function(data) {                   
-                        toaster.pop('info', "", "Messages cleared by " + data.username);
-                        
+                    $scope.socket.on("userClearedMessages", function(data) {                   
                         $scope.messages.length = 0;
+                        $scope.messages.push(data.message);
+
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverBroadcastsClearStrokes", function(data) {
-                        toaster.pop('info', "", "Strokes cleared by " + data.username);
+                    $scope.socket.on("userClearedStrokes", function(data) {
+                        $scope.messages.push(data.message);
                         
                         $scope.strokes.length = 0;
                         $scope.$apply()
                     });
                     
-                    $scope.socket.on("serverBroadcastsDeleteStroke", function(data) {
-                        toaster.pop('info', "", "A stroke deleted by " + data.username);
+                    $scope.socket.on("userDeletedStroke", function(data) {
+                        $scope.messages.push(data.message);
                         
                         $scope.strokes = data.strokes;
                         $scope.$apply()
                     });
                     
                     $scope.socket.on("userConnected", function(data) {
-                        toaster.pop('info', "", data.user.username + " has connected");
+                        $scope.messages.push(data.message);
                         
                         $scope.users = data.users;
                         $scope.$apply()
                     });
                     
                     $scope.socket.on("userDisconnected", function(data) {
-                        toaster.pop('info', "", data.user.username + " is gone");
+                        $scope.messages.push(data.message);
                         
                         $scope.users = data.users;
                         $scope.$apply()
@@ -614,8 +615,30 @@
                     <table class="table table-bordered table-condensed">
                         <tr ng-repeat="message in messages">
                             <td>
-                                <strong>{{message.username}}</strong> says:<br />
-                                <p>{{message.body}}</p>
+                                <div ng-switch="message.messageType">
+                                    <div ng-switch-when="userBroadcastsMessage">
+                                        <strong>{{message.user.username || message.user.userId}}</strong> says:<br />
+                                        <p>{{message.chatMessage.body}}</p>
+                                    </div>
+                                    <div ng-switch-when="userConnected">
+                                        <strong style="color: #FF34BA">{{message.user.username}} connected</strong>
+                                    </div>
+                                    <div ng-switch-when="userDisconnected">
+                                        <strong style="color: #FF34BA">{{message.user.username}} disconnected</strong>
+                                    </div>
+                                    <div ng-switch-when="userChangedName">
+                                        <strong style="color: #FF34BA">{{message.data.oldUsername}} is now {{message.data.newUsername}}</strong>
+                                    </div>
+                                    <div ng-switch-when="userClearedStrokes">
+                                        <strong style="color: #FF34BA">{{message.user.username}} cleared strokes</strong>
+                                    </div>
+                                    <div ng-switch-when="userDeletedStroke">
+                                        <strong style="color: #FF34BA">{{message.user.username}} deleted a stroke</strong>
+                                    </div>
+                                    <div ng-switch-when="userClearedMessages">
+                                        <strong style="color: #FF34BA">{{message.user.username}} cleared messages</strong>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     </table>
