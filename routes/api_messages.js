@@ -1,9 +1,10 @@
 var express = require('express');
 var shared = require('../shared');
+var _ = require('underscore');
 
 var router = express.Router();
 
-router.get('/list', function(req, res) {
+router.get('/list', function(req, res, next) {
 
     res.json({
         error: false,
@@ -11,15 +12,10 @@ router.get('/list', function(req, res) {
     });
 });
 
-router.get('/submit', function(req, res) {
+router.get('/submit', function(req, res, next) {
 
     if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
+        return next(new Error('socketId not found in list of users'));
     }
     
     // Create message
@@ -46,15 +42,10 @@ router.get('/submit', function(req, res) {
     });
 });
 
-router.get('/clear', function(req, res) {
+router.get('/clear', function(req, res, next) {
 
     if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
+        return next(new Error('socketId not found in list of users'));
     }
 
     // Clear messages

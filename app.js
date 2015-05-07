@@ -7,6 +7,7 @@ var bodyParser = require('body-parser');
 var shortid = require('shortid');
 var server = http.createServer(app);
 var shared = require('./shared');
+var _ = require('underscore');
 
 // A default engine is required, even though we render plain html
 app.set('views', './public');
@@ -24,7 +25,7 @@ shared.io.sockets.on('connection', function (socket) {
         username: userId,
     };
     
-    shared.users.push(user);
+    shared.users[socket.id] = user;
     
     // Log
     var message = {
@@ -43,39 +44,46 @@ shared.io.sockets.on('connection', function (socket) {
 
     // Broadcast
     shared.io.sockets.emit('userConnected', {
-        user: user,
-        users: shared.users,
+        users: _.chain(shared.users)
+        .map(function (user) {
+            return {
+                userId: user.userId,
+                username: user.username,
+                isTyping: user.isTyping
+            }
+        }),
         message: message
     });
     
     socket.on('disconnect', function() {
-        for (var i = 0; i < shared.users.length; i++) {
-            if (shared.users[i].socketId == socket.id) {               
-                
-                var user = shared.users[i];
-                
-                shared.users.splice(i, 1);
-                
-                // Log
-                var message = {
-                    messageType: 'userDisconnected',
-                    timestamp: new Date(),
-                    user: {
-                        userId: user.userId,
-                        username: user.username
-                    }
-                };
-                
-                shared.messages.push(message);
-                
-                // Broadcast
-                shared.io.sockets.emit('userDisconnected', {
-                    user: user,
-                    users: shared.users,
-                    message: message
-                });
+
+        delete shared.users[socket.id];
+        
+        // Log
+        var message = {
+            messageType: 'userDisconnected',
+            timestamp: new Date(),
+            user: {
+                userId: user.userId,
+                username: user.username
             }
-        }
+        };
+        
+        shared.messages.push(message);
+        
+        // Broadcast
+        shared.io.sockets.emit('userDisconnected', {
+            user: user,
+            users: _.chain(shared.users)
+            .map(function (user) {
+                return {
+                    userId: user.userId,
+                    username: user.username,
+                    isTyping: user.isTyping
+                }
+            }),
+            message: message
+        });
     });
 });
 
@@ -100,11 +108,7 @@ app.use('/api/', function(req, res, next) {
     res.user = undefined;
     
     if (req.query.socketId != null) {
-        for (var i = 0; i < shared.users.length; i++) {
-            if (shared.users[i].socketId == req.query.socketId) {
-                res.user = shared.users[i];
-            }
-        }
+        res.user = shared.users[req.query.socketId];
     }
 
     next();
@@ -118,6 +122,7 @@ app.use('/api/strokes', require('./routes/api_strokes'));
 app.use('/api/server', require('./routes/api_server'));
 
 // development error handler will print stacktrace
+/*
 if (app.get('env') === 'development') {
     app.use(function(err, req, res, next) {
         res.status(err.status || 500);
@@ -128,10 +133,12 @@ if (app.get('env') === 'development') {
         });
     });
 }
+*/
 
 // production error handler (no stacktraces leaked to user)
 app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
+    //res.status(err.status || 500);
+    res.status(200);
     
     res.json({
         error: true,

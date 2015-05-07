@@ -1,33 +1,28 @@
 var express = require('express');
 var shared = require('../shared');
+var _ = require('underscore');
 
 var router = express.Router();
 
-router.get('/list', function(req, res) {
-
-    var users = [];
-    
-    for (i = 0; i < shared.users.length; i++) {
-        users.push({
-            username: shared.users[i].username
-        });
-    }
-    
+router.get('/list', function(req, res, next) {
+   
     res.json({
         error: false,
-        users: users
+        users: _.chain(shared.users)
+        .map(function (user) {
+            return {
+                userId: user.userId,
+                username: user.username,
+                isTyping: user.isTyping
+            }
+        }),
     });
 });
 
-router.get('/rename', function(req, res) {
+router.get('/rename', function(req, res, next) {
 
     if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
+        return next(new Error('socketId not found in list of users'));
     }
     
     if (req.query.username == '') {
@@ -59,7 +54,14 @@ router.get('/rename', function(req, res) {
     
     // Broadcast
     shared.io.sockets.emit('userChangedName', {
-        users: shared.users,
+        users: _.chain(shared.users)
+        .map(function (user) {
+            return {
+                userId: user.userId,
+                username: user.username,
+                isTyping: user.isTyping
+            }
+        }),
         message: message
     });
 
@@ -69,22 +71,24 @@ router.get('/rename', function(req, res) {
     });
 });
 
-router.get('/updateIsTyping', function(req, res) {
+router.get('/updateIsTyping', function(req, res, next) {
 
     if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
+        return next(new Error('socketId not found in list of users'));
     }
     
     res.user.isTyping = JSON.parse(req.query.isTyping);
        
     // Broadcast
     shared.io.sockets.emit('userUpdatedIsTyping', {
-        users: shared.users,
+        users: _.chain(shared.users)
+        .map(function (user) {
+            return {
+                userId: user.userId,
+                username: user.username,
+                isTyping: user.isTyping
+            }
+        }),
     });
 
     res.json({

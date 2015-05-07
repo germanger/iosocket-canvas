@@ -1,18 +1,14 @@
 var express = require('express');
 var shortid = require('shortid');
 var shared = require('../shared');
+var _ = require('underscore');
 
 var router = express.Router();
 
-router.post('/submit', function(req, res) {
+router.post('/submit', function(req, res, next) {
    
     if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
+        return next(new Error('socketId not found in list of users'));
     }
     
     // Create stroke
@@ -25,7 +21,7 @@ router.post('/submit', function(req, res) {
     };
     
     // Save the new stroke
-    shared.strokes.push(stroke);
+    shared.strokes[stroke.strokeId] = stroke;
 
     // Broadcast the new stroke
     shared.io.sockets.emit('userBroadcastsStroke', stroke);
@@ -36,23 +32,21 @@ router.post('/submit', function(req, res) {
     });
 });
 
-router.get('/list', function(req, res) {
+router.get('/list', function(req, res, next) {
 
     res.json({
         error: false,
-        strokes: shared.strokes
+        strokes: _.chain(shared.strokes)
+        .map(function (stroke) {
+            return stroke;
+        }),
     });
 });
 
-router.get('/clear', function(req, res) {
+router.get('/clear', function(req, res, next) {
 
     if (!res.user) {
-        res.json({
-            error: true,
-            message: 'socketId not found in list of users'
-        });
-        
-        return;
+        return next(new Error('socketId not found in list of users'));
     }
     
     var message = {
@@ -77,23 +71,23 @@ router.get('/clear', function(req, res) {
     });
 });
 
-router.get('/delete', function(req, res) {
+router.get('/delete', function(req, res, next) {
 
     if (!res.user) {
+        return next(new Error('socketId not found in list of users'));
+    }
+
+    if (!(req.query.strokeId in shared.strokes)) {
         res.json({
             error: true,
-            message: 'socketId not found in list of users'
+            message: 'strokeId not found in list of strokes'
         });
         
         return;
     }
-
-    // Delete stroke
-    for (var i = 0; i < shared.strokes.length; i++) {
-        if (shared.strokes[i].strokeId == req.query.strokeId) {
-            shared.strokes.splice(i, 1);
-        }
-    }
+    
+    // Delete stroke  
+    delete shared.strokes[req.query.strokeId];
     
     var message = {
         messageType: 'userDeletedStroke',
@@ -107,7 +101,10 @@ router.get('/delete', function(req, res) {
     // Broadcast
     shared.io.sockets.emit('userDeletedStroke', {
         message: message,
-        strokes: shared.strokes
+        strokes: _.chain(shared.strokes)
+        .map(function (stroke) {
+            return stroke;
+        }),
     });
 
     res.json({

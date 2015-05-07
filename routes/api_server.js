@@ -3,7 +3,7 @@ var shared = require('../shared');
 
 var router = express.Router();
 
-router.get('/info', function(req, res) {
+router.get('/info', function(req, res, next) {
 
     res.json({
         error: false,
