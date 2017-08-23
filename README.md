@@ -34,3 +34,6 @@ The master branch is directly deployed to heroku: https://iosocket-canvas.heroku
 - toaster (notifications)
 - scrollglue (scroll to bottom of divs)
 
+## Screenshot
+
+![Screenshot](https://raw.githubusercontent.com/germanger/iosocket-canvas/master/screenshot.png)
